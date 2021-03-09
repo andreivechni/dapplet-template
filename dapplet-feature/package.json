@@ -4,8 +4,8 @@
   "description": "Ex10: New Virtual adapter (interface)",
   "main": "lib/index.js",
   "scripts": {
-    "postinstall": "concurrently -c \"yellow,magenta\" -n \"example-google-adapter,dapplet\" \"cd example-google-adapter && npm i\" \"cd dapplet-feature && npm i\"",
-    "start": "concurrently -c \"yellow,magenta\" -n \"example-google-adapter,dapplet\" \"cd example-google-adapter && npm start\" \"cd dapplet-feature && npm start\"",
+    "start": "rollup -w --config rollup.config.js",
+    "build": "rollup --config rollup.config.js",
     "prettify": "npx prettier --write .",
     "lint": "npx eslint ."
   },
@@ -20,7 +20,6 @@
     "@rollup/plugin-typescript": "^8.1.1",
     "@typescript-eslint/eslint-plugin": "^4.15.2",
     "@typescript-eslint/parser": "^4.15.2",
-    "concurrently": "^5.3.0",
     "eslint": "^7.21.0",
     "eslint-config-airbnb-typescript": "^12.3.1",
     "eslint-config-prettier": "^8.1.0",
