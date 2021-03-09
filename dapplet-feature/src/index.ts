@@ -34,7 +34,7 @@ const searchResults = [
 @Injectable
 export default class GoogleFeature {
   // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types, @typescript-eslint/no-explicit-any
-  @Inject('example-google-adapter.dapplet-base.eth') public adapter: any;
+  @Inject('example-virtual-adapter.dapplet-base.eth') public adapter: any;
 
   activate() {
     const { button, result } = this.adapter.exports;

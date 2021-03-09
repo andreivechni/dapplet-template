@@ -2,17 +2,15 @@
   "name": { "$ref": "package.json#/name" },
   "branch": "default",
   "version": { "$ref": "package.json#/version" },
-  "type": "FEATURE",
-  "title": "Example 10",
+  "type": "ADAPTER",
+  "title": "Yahoo Adapter",
   "description": { "$ref": "package.json#/description" },
   "main": { "$ref": "package.json#/main" },
-  "icon": "src/icons/ex10.png",
-  "contextIds": ["example-virtual-adapter.dapplet-base.eth"],
-  "config": {
-    "schema": "config/schema.json",
-    "default": "config/default.json"
-  },
+  "contextIds": ["yahoo.com", "www.yahoo.com", "search.yahoo.com"],
   "dependencies": {
+    "dynamic-adapter.dapplet-base.eth": "0.6.13"
+  },
+  "interfaces": {
     "example-virtual-adapter.dapplet-base.eth": "0.2.0"
   }
 }
