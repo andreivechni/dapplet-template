@@ -1,5 +1,6 @@
 import {} from '@dapplets/dapplet-extension';
-import EXAMPLE_IMG from './icons/dapplet-icon.png';
+import LIGHT_IMG from './icons/ex12.png';
+import DARK_IMG from './icons/ex12_inverted.png';
 
 @Injectable
 export default class TwitterFeature {
@@ -14,8 +15,11 @@ export default class TwitterFeature {
           initial: 'DEFAULT',
           DEFAULT: {
             label: 'Injected Button',
-            img: EXAMPLE_IMG,
-            exec: () => alert('Hello, World!'),
+            img: {
+              LIGHT: LIGHT_IMG,
+              DARK: DARK_IMG,
+            },
+            exec: () => alert('Hello, Themes!'),
           },
         }),
     });
