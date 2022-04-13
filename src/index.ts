@@ -9,7 +9,7 @@ export default class TwitterFeature {
   // LP: define variables `wallet`, `_currentAddress` and `_transferAmount`
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private wallet: any;
-  private _currentAddress: string | null = null;
+  private _currentAddresses: string[] | null = null;
   private _transferAmount = '0x2C68AF0BB140000';
   // LP end
 
@@ -26,49 +26,70 @@ export default class TwitterFeature {
             exec: async (_, me) => {
               me.state = 'PENDING';
               if (!this.wallet) {
-                this.wallet = await Core.wallet({ type: 'ethereum', network: 'goerli' });
-                const isWalletConnected = await this.wallet.isConnected();
-                if (!isWalletConnected) await this.wallet.connect();
+                const prevSessions = await Core.sessions();
+                const prevSession = prevSessions.find(x => x.authMethod === 'ethereum/goerli');
+                let session = prevSession
+                if (!prevSession) {
+                  try {
+                    session = await Core.login({ authMethods: ['ethereum/goerli'] })
+                  } catch (err) {
+                    console.log('Login ERROR:', err)
+                    me.state = 'REGECTED';
+                  }
+                }
+                this.wallet = await session.wallet();
               }
-              this.wallet.sendAndListen('eth_accounts', [], {
-                result: (_, { data }) => {
-                  this._currentAddress = data[0];
-                  me.state = 'CONNECTED';
-                },
-              });
+              this._currentAddresses = await this.wallet.request({ method: 'eth_accounts', params: [] });
+              console.log('Your Ethereum address', this._currentAddresses);
+              me.state = this._currentAddresses ? 'CONNECTED' : 'REGECTED';
             },
             // LP end
           },
-          // LP: 2. Add states CONNECTED, PENDING, REGECTED, `MINING`, COMPLETED and UNAVAILABLE.
+          // LP: 2. Add states CONNECTED, PENDING, REGECTED, MINING, COMPLETED and FAILURE.
           CONNECTED: {
             label: `Send ${Number(BigInt(this._transferAmount) / BigInt(1_000_000_000_000)) / 1_000_000} ETH`,
             img: EXAMPLE_IMG,
             loading: false,
             exec: async (_, me) => {
               // LP: 3. Send the necessary data to wallet and listen for the answer.
-              this.wallet.sendAndListen(
-                'eth_sendTransaction',
-                [
-                  {
-                    from: this._currentAddress,
-                    to: this._currentAddress,
-                    value: this._transferAmount,
-                  },
-                ],
-                {
-                  // LP: 4. Show the state of the transaction
-                  pending: () => (me.state = 'PENDING'),
-                  rejected: () => (me.state = 'REGECTED'),
-                  result: () => (me.state = 'MINING'),
-                  mined: (_, { hash }) =>
-                    (me.state = hash === 0 || hash === 0x0 ? 'UNAVAILABLE' : 'COMPLETED'),
-                },
-              );
+              me.state = 'PENDING';
+              try {
+                const transactionHash = await this.wallet.request({
+                  method: 'eth_sendTransaction',
+                  params: [
+                    {
+                      from: this._currentAddresses[0],
+                      to: this._currentAddresses[0],
+                      value: this._transferAmount,
+                    },
+                  ],
+                });
+                console.log('transactionHash', transactionHash)
+                me.state = 'MINING';
+                let transactionReceipt = null
+                while (!transactionReceipt) {
+                  await new Promise((res) => setTimeout(res, 1000));
+                  try {
+                    transactionReceipt = await this.wallet.request({
+                      method: 'eth_getTransactionReceipt',
+                      params: [transactionHash],
+                    });
+                  } catch (err) {
+                    console.log('Transaction Receipt ERROR:', err)
+                  }
+                }
+                console.log('transactionReceipt', transactionReceipt)
+                me.state = transactionReceipt.status === "0x1" ? 'COMPLETED' : 'FAILURE';
+              } catch (err) {
+                console.log('Transaction ERROR:', err)
+                me.state = 'REGECTED';
+              }
             },
           },
           PENDING: {
             label: 'Pending',
             loading: true,
+            exec: null,
           },
           REGECTED: {
             label: 'Rejected',
@@ -79,6 +100,7 @@ export default class TwitterFeature {
           MINING: {
             label: 'Mining',
             loading: true,
+            exec: null,
           },
           COMPLETED: {
             label: 'Completed',
@@ -86,8 +108,8 @@ export default class TwitterFeature {
             loading: false,
             exec: (_, me) => (me.state = 'CONNECTED'),
           },
-          UNAVAILABLE: {
-            label: 'Not available',
+          FAILURE: {
+            label: 'Failure',
             img: EXAMPLE_IMG,
             loading: false,
             exec: (_, me) => (me.state = 'CONNECTED'),
