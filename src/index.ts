@@ -10,7 +10,7 @@ export default class TwitterFeature {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private wallet: any;
   private _currentAddress: string | null = null;
-  private _transferAmount = '0x1BC16D674EC80000';
+  private _transferAmount = '0x2C68AF0BB140000';
   // LP end
 
   async activate() {
@@ -41,8 +41,9 @@ export default class TwitterFeature {
           },
           // LP: 2. Add states CONNECTED, PENDING, REGECTED, `MINING`, COMPLETED and UNAVAILABLE.
           CONNECTED: {
-            label: `Send ${BigInt(this._transferAmount) / BigInt(1000000000000000000)} ETH`,
+            label: `Send ${Number(BigInt(this._transferAmount) / BigInt(1_000_000_000_000)) / 1_000_000} ETH`,
             img: EXAMPLE_IMG,
+            loading: false,
             exec: async (_, me) => {
               // LP: 3. Send the necessary data to wallet and listen for the answer.
               this.wallet.sendAndListen(
@@ -72,6 +73,7 @@ export default class TwitterFeature {
           REGECTED: {
             label: 'Rejected',
             img: EXAMPLE_IMG,
+            loading: false,
             exec: (_, me) => (me.state = 'CONNECTED'),
           },
           MINING: {
@@ -81,11 +83,13 @@ export default class TwitterFeature {
           COMPLETED: {
             label: 'Completed',
             img: EXAMPLE_IMG,
+            loading: false,
             exec: (_, me) => (me.state = 'CONNECTED'),
           },
           UNAVAILABLE: {
             label: 'Not available',
             img: EXAMPLE_IMG,
+            loading: false,
             exec: (_, me) => (me.state = 'CONNECTED'),
           },
           // LP end
