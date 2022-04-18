@@ -25,19 +25,40 @@ export default class TwitterFeature {
             // LP: 1. Open wallet
             exec: async (_, me) => {
               me.state = 'PENDING';
-              if (!this.wallet) {
-                const prevSessions = await Core.sessions();
-                const prevSession = prevSessions.find(x => x.authMethod === 'ethereum/goerli');
-                let session = prevSession
-                if (!prevSession) {
-                  try {
-                    session = await Core.login({ authMethods: ['ethereum/goerli'] })
-                  } catch (err) {
-                    console.log('Login ERROR:', err)
-                    me.state = 'REGECTED';
-                  }
+              if (!(this.wallet && !(this.wallet.isConnected && !(await this.wallet.isConnected())))) {
+
+                // ** USING Core.login **
+                //
+                // const prevSessions = await Core.sessions();
+                // const prevSession = prevSessions.find(x => x.authMethod === 'ethereum/goerli');
+                // let session = prevSession
+                // if (!prevSession) {
+                //   try {
+                //     session = await Core.login({ authMethods: ['ethereum/goerli'] })
+                //   } catch (err) {
+                //     console.log('Login ERROR:', err)
+                //     me.state = 'REGECTED';
+                //     return;
+                //   }
+                // }
+                // this.wallet = await session.wallet();
+
+                // ** USING Core.wallet **
+                //
+                try {
+                  this.wallet = this.wallet ?? await Core.wallet({ type: "ethereum", network: "goerli" });
+                  console.log('this.wallet', this.wallet)
+                  const isWalletConnected = await this.wallet.isConnected();
+                  console.log('isWalletConnected', isWalletConnected)
+                  if (!isWalletConnected) await this.wallet.connect();
+                } catch (err) {
+                  console.log('Login ERROR:', err)
+                  me.state = 'REGECTED';
+                  return;
                 }
-                this.wallet = await session.wallet();
+
+                // **
+
               }
               this._currentAddresses = await this.wallet.request({ method: 'eth_accounts', params: [] });
               console.log('Your Ethereum address', this._currentAddresses);
@@ -66,20 +87,14 @@ export default class TwitterFeature {
                 });
                 console.log('transactionHash', transactionHash)
                 me.state = 'MINING';
-                let transactionReceipt = null
-                while (!transactionReceipt) {
-                  await new Promise((res) => setTimeout(res, 1000));
-                  try {
-                    transactionReceipt = await this.wallet.request({
-                      method: 'eth_getTransactionReceipt',
-                      params: [transactionHash],
-                    });
-                  } catch (err) {
-                    console.log('Transaction Receipt ERROR:', err)
-                  }
+                try {
+                  const transactionReceipt = await this.wallet.waitTransaction(transactionHash, 2);
+                  console.log('transactionReceipt', transactionReceipt)
+                  me.state = transactionReceipt.status === "0x1" ? 'COMPLETED' : 'FAILURE';
+                } catch (err) {
+                  console.log('Transaction waiting ERROR:', err)
+                  me.state = 'FAILURE';
                 }
-                console.log('transactionReceipt', transactionReceipt)
-                me.state = transactionReceipt.status === "0x1" ? 'COMPLETED' : 'FAILURE';
               } catch (err) {
                 console.log('Transaction ERROR:', err)
                 me.state = 'REGECTED';
@@ -95,7 +110,9 @@ export default class TwitterFeature {
             label: 'Rejected',
             img: EXAMPLE_IMG,
             loading: false,
-            exec: (_, me) => (me.state = 'CONNECTED'),
+            exec: async (_, me) => {
+              me.state = this.wallet && !(this.wallet.isConnected && !(await this.wallet.isConnected())) ? 'CONNECTED' : 'DEFAULT';
+            },
           },
           MINING: {
             label: 'Mining',
